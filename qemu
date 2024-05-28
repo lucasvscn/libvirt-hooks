@@ -1,0 +1,66 @@
+#!/bin/bash
+# vim: ft=sh ts=2 sw=2 et:
+# ----------------------------------------------------------------------------
+#
+# qemu - libvirt hook script
+#
+# ----------------------------------------------------------------------------
+#
+# This script is called by libvirt when a guest is started or stopped.
+# It will look for a script in the qemu.d directory with the same name as the
+# guest and run it if it exists.
+#
+# The script will be called with the following arguments:
+#   $1: the name of the hook
+#   $2: the state of the guest
+#   $3: any additional arguments
+#   $4: an extra argument if needed
+#
+# The script should return 0 if it succeeds, and non-zero if it fails.
+#
+# ----------------------------------------------------------------------------
+#
+# To enable this script, copy it to /etc/libvirt/hooks/qemu and make it
+# executable. Then create a directory /etc/libvirt/hooks/qemu.d and add scripts
+# with the same name as the guest to run them when the guest is started or
+# stopped.
+#
+# For example, to run a script when the guest "myguest" is started, create a
+# script /etc/libvirt/hooks/qemu.d/myguest and make it executable.
+#
+# ----------------------------------------------------------------------------
+#
+# This script is based on the libvirt hook script from the Arch Linux wiki:
+# https://wiki.archlinux.org/index.php/Libvirt#Hooks
+#
+# ----------------------------------------------------------------------------
+#
+# MIT License
+
+# ---[ Configuration ]--------------------------------------------------------
+
+GUEST_NAME="$1"
+HOOK_NAME="$2"
+STATE_NAME="$3"
+MISC="${@:4}"
+
+BASEDIR="$(dirname $0)"
+
+HOOKPATH="${BASEDIR}/qemu.d/${GUEST_NAME}"
+
+set -e
+
+# ---[ Main ]-----------------------------------------------------------------
+
+# check if it's a non-empty executable file
+if [ -f "$HOOKPATH" ] && [ -s "$HOOKPATH" ] && [ -x "$HOOKPATH" ]; then
+  eval \"$HOOKPATH\" "$@"
+elif [ -d "$HOOKPATH" ]; then
+  while read file; do
+    # check for null string
+    if [ ! -f "$file" ]; then
+      eval \"$file\" "$@"
+    fi
+  done <<< "$(find -L "$HOOKPATH" -maxdepth 1 -type f -executable -print;)"
+fi
+

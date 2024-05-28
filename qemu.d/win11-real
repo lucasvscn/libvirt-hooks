@@ -1,0 +1,38 @@
+#!/bin/sh
+# vim: set ts=2 sw=2 sts=2 et:
+#
+# win11-real - Build a Windows 11 virtual machine with a 100% CPU affinity.
+#
+# References:
+# https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF#Example_with_systemd
+#
+# ----------------------------------------------------------------------------
+#
+# This configuration is used only for the "win11-real" virtual machine.
+#
+# It reserves CPUs 0-9 for the guest virtual machine and CPUs 10-19 for the
+# host system. This configuration is useful for running a Windows 11 virtual
+# machine with a 100% CPU affinity.
+#
+# ----------------------------------------------------------------------------
+#
+# The script should be placed in the /etc/libvirt/hooks/qemu.d/ directory and
+# should be executable. The script should be named "win11-real" and should not
+# have any file extension. The script should be owned by the root user and
+# should have the following permissions:
+#
+#   -rwxr-xr-x 1 root root  500 Jul  1 12:00 win11-real
+#
+
+command=$2
+
+if [ "$command" = "started" ]; then
+    systemctl set-property --runtime -- system.slice AllowedCPUs=10-19
+    systemctl set-property --runtime -- user.slice AllowedCPUs=10-19
+    systemctl set-property --runtime -- init.scope AllowedCPUs=10-19
+elif [ "$command" = "release" ]; then
+    systemctl set-property --runtime -- system.slice AllowedCPUs=0-19
+    systemctl set-property --runtime -- user.slice AllowedCPUs=0-19
+    systemctl set-property --runtime -- init.scope AllowedCPUs=0-19
+fi
+
